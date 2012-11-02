@@ -24,7 +24,8 @@
 @optional
 
 /*!
- @brief  Returns title that represents user's preferences. CAN be nil.
+ @brief         Returns title that represents user's preferences. CAN be nil.
+ @discussion    If KVO-compliant, window of IKApplicationPreferences will respond to updates.
  */
 - (NSString *)title;
 
