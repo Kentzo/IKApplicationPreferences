@@ -12,7 +12,7 @@ IKApplicationPreferences was developed to address this problem.
 - Toolbar can be configured using **ASCII art**! Finally it's very easy to localize preferences.
 - Toggling views are animated. On pre 10.8 it uses hide/show approach (like in Mail.app or Safari.app).
 On 10.8+ it uses Core Animation (like in About This Mac introduced in Lion).
-- Default window title (*"CFBundleDisplayName"* or *"CFBundleName"*) is localized in almost every language.
+- Default window title is localized in almost every language.
 - Provides methods to cyclically enumerate views. Very useful since order of preferences may depend on user's locale.
 - Automatic Reference Counting (a.k.a ARC)
 
@@ -75,4 +75,4 @@ Notes
     4. You MUST add an *empty* view and set Owner's _representationsRootView to it.
     5. You SHOULD set _representationsRootView's autoresizing mask or constraints so it will be resized with window proportionally. It's not a requirement because you can provide custom layout in your subclass of IKApplicationPreferences.
     6. You MUST add Toolbar to the window and set its delegate to Owner.
-
+- Default `-titlePlaceholder` uses standard CFBundleDisplayName to obtain localized name of you application. If it fails, it uses CFBundleName.
