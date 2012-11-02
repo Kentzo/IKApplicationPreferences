@@ -26,6 +26,7 @@
 @implementation IKApplicationPreferences
 {
     NSArray *_toolbarItemIdentifiers;
+    NSDictionary *_titleBindingOptions;
 }
 
 - (instancetype)initWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
@@ -109,7 +110,6 @@
     NSSize viewSize = newRepresentation.view.frame.size;
     [newRepresentation.view setFrame:NSMakeRect(0, 0, viewSize.width, viewSize.height)];
     
-    
     if ([_representationsRootView wantsLayer] && isAnimated)
     {
         if (self.selectedRepresentation)
@@ -127,7 +127,12 @@
     
     self.window.toolbar.selectedItemIdentifier = newIdentifier;
     
+    [self.window unbind:NSTitleBinding];
+    
     _selectedRepresentation = newRepresentation;
+    
+    if ([_selectedRepresentation respondsToSelector:@selector(title)])
+        [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:_titleBindingOptions];
     
     [self didChangeValueForKey:@"selectedRepresentation"];
     [self didChangeValueForKey:@"selectedRepresentationIndex"];
@@ -270,14 +275,13 @@
     NSAssert(_representationsRootView != nil, @"You MUST set _representationsRootView in your custom template.");
     
     NSString *titleBindingPlaceholder = [self titlePlaceholder];
-    NSDictionary *titleBindingOptions = @{
+    _titleBindingOptions = @{
         NSRaisesForNotApplicableKeysBindingOption : @(NO),
         NSMultipleValuesPlaceholderBindingOption : titleBindingPlaceholder,
         NSNoSelectionPlaceholderBindingOption : titleBindingPlaceholder,
         NSNotApplicablePlaceholderBindingOption : titleBindingPlaceholder,
         NSNullPlaceholderBindingOption : titleBindingPlaceholder
     };
-    [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:titleBindingOptions];
     
     if ([_toolbarItemIdentifiers count])
         self.selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];

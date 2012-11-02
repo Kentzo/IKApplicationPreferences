@@ -17,13 +17,15 @@
 - (NSView *)view;
 
 /*!
-    @brief  Returns title that represents user's preferences. CAN be nil.
- */
-- (NSString *)title;
-
-/*!
     @brief  Configures toolbar item properties other than target and action.
  */
 - (void)configureToolbarItem:(NSToolbarItem *)anItem;
+
+@optional
+
+/*!
+ @brief  Returns title that represents user's preferences. CAN be nil.
+ */
+- (NSString *)title;
 
 @end
