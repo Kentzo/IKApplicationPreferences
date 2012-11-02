@@ -9,11 +9,11 @@ IKApplicationPreferences was developed to address this problem.
 **Out of the box features:**
 
 - Window is automatically resized to match size of the view
-- Toolbar can be configured using **ASCII art**! Finally it's very easy to localize preferences.
-- Toggling views are animated. On pre 10.8 it uses hide/show approach (like in Mail.app or Safari.app).
-On 10.8+ it uses Core Animation (like in About This Mac introduced in Lion).
-- Default window title is localized in almost every language.
-- Provides methods to cyclically enumerate views. Very useful since order of preferences may depend on user's locale.
+- Toolbar can be configured using **ASCII art**! Finally it's very easy to localize preferences
+- Toggling views are animated. On pre 10.8 it uses hide/show approach (like in Mail.app or Safari.app)
+On 10.8+ it uses Core Animation (like in About This Mac introduced in Lion)
+- Default window title is localized in almost every language
+- Provides methods to cyclically enumerate views. Very useful since order of preferences may depend on user's locale
 - Automatic Reference Counting (a.k.a ARC)
 
 Requirements
