@@ -78,6 +78,11 @@
 
 #pragma mark Methods
 
++ (instancetype)preferencesWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
+{
+    return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations];
+}
+
 + (NSString *)visualFormatByExpandingShortcuts:(NSString *)aFormatWithShortcuts
 {
     NSMutableString *s = [aFormatWithShortcuts mutableCopy];

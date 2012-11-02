@@ -79,6 +79,8 @@
  */
 @property (nonatomic, copy) NSString *selectedRepresentationIdentifier;
 
++ (instancetype)preferencesWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations;
+
 /*!
     @brief      Expands shortcuts into normal identifiers.
     @param      aFormatWithShortcuts Format string to expand.
