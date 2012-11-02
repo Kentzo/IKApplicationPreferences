@@ -23,6 +23,9 @@
 @end
 
 
+static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelectedRepresentationIdentifier";
+
+
 @implementation IKApplicationPreferences
 {
     NSArray *_toolbarItemIdentifiers;
@@ -60,7 +63,7 @@
 
 #pragma mark Properties
 
-+ (BOOL)automaticallyNotifiesObserversOfSelectedRepresentationIndex
++ (BOOL)automaticallyNotifiesObserversOfSelectedRepresentationIdentifier
 {
     return NO;
 }
@@ -98,6 +101,8 @@
 
 - (void)setSelectedRepresentationIdentifier:(NSString *)newIdentifier animated:(BOOL)isAnimated
 {
+    newIdentifier = [newIdentifier copy];
+    
     if (!newIdentifier || [newIdentifier isEqual:self.selectedRepresentationIdentifier])
         return;
     
@@ -108,10 +113,9 @@
     
     [NSAnimationContext beginGrouping];
     
-    [self willChangeValueForKey:@"selectedRepresentationIndex"];
+    [self willChangeValueForKey:@"selectedRepresentationIdentifier"];
     [self willChangeValueForKey:@"selectedRepresentation"];
     
-
     NSSize viewSize = newRepresentation.view.frame.size;
     [newRepresentation.view setFrame:NSMakeRect(0, 0, viewSize.width, viewSize.height)];
     
@@ -130,6 +134,8 @@
             [_representationsRootView addSubview:newRepresentation.view];
     }
     
+    _selectedRepresentationIdentifier = newIdentifier;
+    
     self.window.toolbar.selectedItemIdentifier = newIdentifier;
     
     [self.window unbind:NSTitleBinding];
@@ -140,7 +146,7 @@
         [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:_titleBindingOptions];
     
     [self didChangeValueForKey:@"selectedRepresentation"];
-    [self didChangeValueForKey:@"selectedRepresentationIndex"];
+    [self didChangeValueForKey:@"selectedRepresentationIdentifier"];
     
     if (isAnimated && !_representationsRootView.wantsLayer)
         _representationsRootView.hidden = YES;
@@ -236,6 +242,31 @@
                                                                         @"IKApplicationPreferences",
                                                                         [NSBundle bundleForClass:[self class]],
                                                                         @"%@ Preferences", @"IKApplicationPreferences Default Title Placeholder Format."), bundleName];
+}
+
+
+#pragma mark NSWindowDelegate
+
+- (void)window:(NSWindow *)aWindow willEncodeRestorableState:(NSCoder *)aState
+{
+    if (aWindow != self.window)
+        return;
+    
+    [aState encodeObject:self.selectedRepresentationIdentifier forKey:IKSelectedRepresentationIdentifierStateKey];
+}
+
+- (void)window:(NSWindow *)aWindow didDecodeRestorableState:(NSCoder *)aState
+{
+    if (aWindow != self.window)
+        return;
+    
+    NSString *selectedIdentifier = [aState decodeObjectForKey:IKSelectedRepresentationIdentifierStateKey];
+    
+    if ([selectedIdentifier isKindOfClass:[NSString class]] &&
+        [_toolbarItemIdentifiers containsObject:selectedIdentifier])
+    {
+        self.selectedRepresentationIdentifier = selectedIdentifier;
+    }
 }
 
 
