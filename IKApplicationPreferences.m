@@ -35,24 +35,24 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 - (instancetype)initWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
 {
     self = [self initWithWindowNibName:aNibName];
-    
+
     if (self)
     {
         _toolbarItemIdentifiers = [[[self class] visualFormatByExpandingShortcuts:aFormat] componentsSeparatedByString:@","];
         _representations = [aRepresentations copy];
     }
-    
+
     return self;
 }
 
 - (instancetype)initWithWindow:(NSWindow *)window
 {
     self = [super initWithWindow:window];
-    
+
     if (self)
     {
     }
-    
+
     return self;
 }
 
@@ -102,23 +102,23 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 - (void)setSelectedRepresentationIdentifier:(NSString *)newIdentifier animated:(BOOL)isAnimated
 {
     newIdentifier = [newIdentifier copy];
-    
+
     if (!newIdentifier || [newIdentifier isEqual:self.selectedRepresentationIdentifier])
         return;
-    
+
     NSObject<IKPreferencesRepresentation> *newRepresentation = [self representationForIdentifier:newIdentifier];
-    
+
     if (!newRepresentation)
         return;
-    
+
     [NSAnimationContext beginGrouping];
-    
+
     [self willChangeValueForKey:@"selectedRepresentationIdentifier"];
     [self willChangeValueForKey:@"selectedRepresentation"];
-    
+
     NSSize viewSize = newRepresentation.view.frame.size;
     [newRepresentation.view setFrame:NSMakeRect(0, 0, viewSize.width, viewSize.height)];
-    
+
     if ([_representationsRootView wantsLayer] && isAnimated)
     {
         if (self.selectedRepresentation)
@@ -133,31 +133,31 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         else
             [_representationsRootView addSubview:newRepresentation.view];
     }
-    
+
     _selectedRepresentationIdentifier = newIdentifier;
-    
+
     self.window.toolbar.selectedItemIdentifier = newIdentifier;
-    
+
     [self.window unbind:NSTitleBinding];
-    
+
     _selectedRepresentation = newRepresentation;
-    
+
     if ([_selectedRepresentation respondsToSelector:@selector(title)])
         [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:_titleBindingOptions];
-    
+
     [self didChangeValueForKey:@"selectedRepresentation"];
     [self didChangeValueForKey:@"selectedRepresentationIdentifier"];
-    
+
     if (isAnimated && !_representationsRootView.wantsLayer)
         _representationsRootView.hidden = YES;
-    
+
     [self adjustWindowSizeAnimated:isAnimated];
-    
+
     if (isAnimated && !_representationsRootView.wantsLayer)
         _representationsRootView.hidden = NO;
-    
+
     [NSAnimationContext endGrouping];
-    
+
     [self.window makeFirstResponder:[newRepresentation.view nextValidKeyView]];
 }
 
@@ -165,18 +165,18 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     if ([_toolbarItemIdentifiers count] == 0)
         return;
-    
+
     NSUInteger currentIndex = [_toolbarItemIdentifiers indexOfObject:self.selectedRepresentationIdentifier];
-    
+
     if (currentIndex == NSNotFound)
         return;
-    
+
     NSUInteger nextIndex = [_toolbarItemIdentifiers indexOfObjectAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(currentIndex + 1, [_toolbarItemIdentifiers count] - (currentIndex + 1))]
                                                                    options:NSEnumerationConcurrent
                                                                passingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
                                                                    return ![obj isEqual:NSToolbarSpaceItemIdentifier] && ![obj isEqual:NSToolbarFlexibleSpaceItemIdentifier];
                                                                }];
-    
+
     if (nextIndex != NSNotFound)
         [self setSelectedRepresentationIdentifier:_toolbarItemIdentifiers[nextIndex] animated:isAnimated];
     else
@@ -187,18 +187,18 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     if ([_toolbarItemIdentifiers count] == 0)
         return;
-    
+
     NSUInteger currentIndex = [_toolbarItemIdentifiers indexOfObject:self.selectedRepresentationIdentifier];
-    
+
     if (currentIndex == NSNotFound)
         return;
-    
+
     NSUInteger previousIndex = [_toolbarItemIdentifiers indexOfObjectAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, currentIndex)]
                                                                        options:NSEnumerationConcurrent
                                                                    passingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
                                                                        return ![obj isEqual:NSToolbarSpaceItemIdentifier] && ![obj isEqual:NSToolbarFlexibleSpaceItemIdentifier];
                                                                    }];
-    
+
     if (previousIndex != NSNotFound)
         [self setSelectedRepresentationIdentifier:_toolbarItemIdentifiers[previousIndex] animated:isAnimated];
     else
@@ -214,17 +214,17 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     NSSize oldSize = [_representationsRootView frame].size;
     NSSize newSize = self.selectedRepresentation.view.frame.size;
-    
+
     if (NSEqualSizes(oldSize, newSize))
         return;
-    
+
     NSRect oldFrame = self.window.frame;
     NSRect newFrame = NSMakeRect(oldFrame.origin.x,
                                  0.0,
                                  MIN(self.window.contentMaxSize.width, MAX(self.window.contentMinSize.width, oldFrame.size.width + (newSize.width - oldSize.width))),
                                  MIN(self.window.contentMaxSize.height, MAX(self.window.contentMinSize.height, oldFrame.size.height + (newSize.height - oldSize.height))));
     newFrame.origin.y = oldFrame.origin.y - (newFrame.size.height - oldFrame.size.height);
-    
+
     if ([_representationsRootView wantsLayer] && isAnimated)
         [self.window.animator setFrame:newFrame display:YES];
     else
@@ -234,7 +234,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 - (NSString *)titlePlaceholder
 {
     NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
-    
+
     if (!bundleName)
         bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
 
@@ -251,7 +251,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     if (aWindow != self.window)
         return;
-    
+
     [aState encodeObject:self.selectedRepresentationIdentifier forKey:IKSelectedRepresentationIdentifierStateKey];
 }
 
@@ -259,9 +259,9 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     if (aWindow != self.window)
         return;
-    
+
     NSString *selectedIdentifier = [aState decodeObjectForKey:IKSelectedRepresentationIdentifierStateKey];
-    
+
     if ([selectedIdentifier isKindOfClass:[NSString class]] &&
         [_toolbarItemIdentifiers containsObject:selectedIdentifier])
     {
@@ -275,10 +275,10 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 - (NSToolbarItem *)toolbar:(NSToolbar *)aToolbar itemForItemIdentifier:(NSString *)anItemIdentifier willBeInsertedIntoToolbar:(BOOL)aFlag
 {
     NSObject<IKPreferencesRepresentation> *representation = [self representationForIdentifier:anItemIdentifier];
-    
+
     if (!representation)
         return nil;
-    
+
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:anItemIdentifier];
     [representation configureToolbarItem:item];
     item.target = self;
@@ -307,9 +307,9 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 - (void)windowDidLoad
 {
     [super windowDidLoad];
-    
+
     NSAssert(_representationsRootView != nil, @"You MUST set _representationsRootView in your custom template.");
-    
+
     NSString *titleBindingPlaceholder = [self titlePlaceholder];
     _titleBindingOptions = @{
         NSRaisesForNotApplicableKeysBindingOption : @(NO),
@@ -318,7 +318,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         NSNotApplicablePlaceholderBindingOption : titleBindingPlaceholder,
         NSNullPlaceholderBindingOption : titleBindingPlaceholder
     };
-    
+
     if ([_toolbarItemIdentifiers count])
         self.selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];
 }

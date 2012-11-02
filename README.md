@@ -76,4 +76,4 @@ Notes
     4. You MUST add an *empty* view and set Owner's _representationsRootView to it.
     5. You SHOULD set _representationsRootView's autoresizing mask or constraints so it will be resized with window proportionally. It's not a requirement because you can provide custom layout in your subclass of IKApplicationPreferences.
     6. You MUST add Toolbar to the window and set its delegate to Owner.
-- Default `-titlePlaceholder` uses standard CFBundleDisplayName to obtain localized name of you application. If it fails, it uses CFBundleName.
+- Default `-titlePlaceholder` uses standard CFBundleDisplayName to obtain localized name of you application. If it fails, it uses CFBundleName
