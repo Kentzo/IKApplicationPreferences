@@ -55,13 +55,19 @@ The designated initialized or IKApplicationPreferences is:
 
     - (instancetype)initWithWindowNibName:(NSString *)aNibName
                              visualFormat:(NSString *)aFormat
-                          representations:(NSDictionary *)aRepresentations;
+                          representations:(NSDictionary *)aRepresentations
+                        usesCoreAnimation:(BOOL)aUsesCoreAnimation;
 
 The first parameter is a name of nib we discussed above. The second and third parameters should be familiar to you if you ever worked with NSLayoutConstraint.
 
 - **aRepresentations** is a dictionary where keys are identifiers and objects are instances of classes that adopt `IKPreferencesRepresentation`
 
 - **aFormat** is a string which represents configuration of `NSToolbar` using ASCII art. It's essentially a comma-separated list of identifiers specified in **aRepresentations** or standard NSToolbarItem identifiers. It also supports 2 shortcuts: `' '`(NSToolbarSpaceItemIdentifier) and `'-'`(NSToolbarFlexibleSpaceItemIdentifier). E.g. `@"general,accounts, ,audio,video,-,about"`
+
+- **aUsesCoreAnimation** If set, Core Animation will be used therefore animation will be much smoother
+
+You can also use `preferencesWithWindowNibName:visualFormat:representations:`. The only difference is that it lacks *aUsesCoreAnimation* parameter, because it
+automaticaly uses Core Animation if target version of Mac OS X is 10.8+.
 
 Already done with that? Great. To show the preferences window simply use standard method of NSWindowController: `-showWindow:`.
 
@@ -77,4 +83,5 @@ Notes
     5. You SHOULD set _representationsRootView's autoresizing mask or constraints so it will be resized with window proportionally. It's not a requirement because you can provide custom layout in your subclass of IKApplicationPreferences.
     6. You SHOULD set class of _representationsRootView to _IKRepresentationRootView. _IKRepresentationRootView is a flipped NSView.
     7. You MUST add Toolbar to the window and set its delegate to Owner.
+
 - Default `-titlePlaceholder` uses standard CFBundleDisplayName to obtain localized name of you application. If it fails, it uses CFBundleName

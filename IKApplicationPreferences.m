@@ -32,7 +32,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     NSDictionary *_titleBindingOptions;
 }
 
-- (instancetype)initWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
+- (instancetype)initWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations usesCoreAnimation:(BOOL)aUsesCoreAnimation
 {
     self = [self initWithWindowNibName:aNibName];
 
@@ -40,6 +40,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     {
         _toolbarItemIdentifiers = [[[self class] visualFormatByExpandingShortcuts:aFormat] componentsSeparatedByString:@","];
         _representations = [aRepresentations copy];
+        _usesCoreAnimation = aUsesCoreAnimation;
     }
 
     return self;
@@ -54,10 +55,6 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     }
 
     return self;
-}
-
-- (void)dealloc
-{
 }
 
 
@@ -83,7 +80,10 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 + (instancetype)preferencesWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
 {
-    return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations];
+    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_7)
+        return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:NO];
+    else
+        return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:YES];
 }
 
 + (NSString *)visualFormatByExpandingShortcuts:(NSString *)aFormatWithShortcuts
@@ -115,9 +115,10 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
     [self willChangeValueForKey:@"selectedRepresentationIdentifier"];
     [self willChangeValueForKey:@"selectedRepresentation"];
+    [self.window unbind:NSTitleBinding];
 
-    NSSize viewSize = newRepresentation.view.frame.size;
-    [newRepresentation.view setFrame:NSMakeRect(0, 0, viewSize.width, viewSize.height)];
+    newRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
+    newRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
 
     if ([_representationsRootView wantsLayer] && isAnimated)
     {
@@ -134,13 +135,9 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
             [_representationsRootView addSubview:newRepresentation.view];
     }
 
-    _selectedRepresentationIdentifier = newIdentifier;
-
-    self.window.toolbar.selectedItemIdentifier = newIdentifier;
-
-    [self.window unbind:NSTitleBinding];
-
     _selectedRepresentation = newRepresentation;
+    self.window.toolbar.selectedItemIdentifier = newIdentifier;
+    _selectedRepresentationIdentifier = newIdentifier;
 
     if ([_selectedRepresentation respondsToSelector:@selector(title)])
         [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:_titleBindingOptions];
@@ -151,7 +148,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     if (isAnimated && !_representationsRootView.wantsLayer)
         _representationsRootView.hidden = YES;
 
-    [self adjustWindowSizeAnimated:isAnimated];
+    [self adjustWindowSizeToMatchRepresentationViewSize:_selectedRepresentation.view.frame.size animated:isAnimated];
 
     if (isAnimated && !_representationsRootView.wantsLayer)
         _representationsRootView.hidden = NO;
@@ -210,13 +207,17 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     [self setSelectedRepresentationIdentifier:anItem.itemIdentifier animated:YES];
 }
 
-- (void)adjustWindowSizeAnimated:(BOOL)isAnimated
+- (NSRect)windowFrameForRepresentationViewSize:(NSSize)aRepresentationViewSize
 {
-    NSSize oldSize = [_representationsRootView frame].size;
-    NSSize newSize = self.selectedRepresentation.view.frame.size;
+    // Assume that spaces between edges of _representationsRootView and the window are never changed.
+    // Therefore the difference between _representationsRootView and aRepresentationViewSize
+    // can be applied to adjust size of the window.
+
+    NSSize oldSize = _representationsRootView.frame.size;
+    NSSize newSize = aRepresentationViewSize;
 
     if (NSEqualSizes(oldSize, newSize))
-        return;
+        return self.window.frame;
 
     NSRect oldFrame = self.window.frame;
     NSRect newFrame = NSMakeRect(oldFrame.origin.x,
@@ -225,10 +226,27 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
                                  MIN(self.window.contentMaxSize.height, MAX(self.window.contentMinSize.height, oldFrame.size.height + (newSize.height - oldSize.height))));
     newFrame.origin.y = oldFrame.origin.y - (newFrame.size.height - oldFrame.size.height);
 
-    if ([_representationsRootView wantsLayer] && isAnimated)
+    return newFrame;
+}
+
+- (void)adjustWindowSizeToMatchRepresentationViewSize:(NSSize)newSize animated:(BOOL)isAnimated
+{
+    NSRect newFrame = [self windowFrameForRepresentationViewSize:newSize];
+
+    if (_representationsRootView.wantsLayer && isAnimated)
         [self.window.animator setFrame:newFrame display:YES];
     else
         [self.window setFrame:newFrame display:YES animate:isAnimated];
+}
+
+- (void)adjustWindowAndRepresentationViewSizesToMatchRepresentationViewSize:(NSSize)newSize animated:(BOOL)isAnimated
+{
+    NSUInteger currentMask = self.selectedRepresentation.view.autoresizingMask;
+    self.selectedRepresentation.view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    NSRect newFrame = [self windowFrameForRepresentationViewSize:newSize];
+    // MUST be blocking. Otherwise autoresizing mask will be reset before animation is complete.
+    [self.window setFrame:newFrame display:YES animate:isAnimated];
+    self.selectedRepresentation.view.autoresizingMask = currentMask;
 }
 
 - (NSString *)titlePlaceholder
@@ -318,6 +336,9 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         NSNotApplicablePlaceholderBindingOption : titleBindingPlaceholder,
         NSNullPlaceholderBindingOption : titleBindingPlaceholder
     };
+
+    if (self.usesCoreAnimation)
+        [_representationsRootView setWantsLayer:YES];
 
     if ([_toolbarItemIdentifiers count])
         self.selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];
