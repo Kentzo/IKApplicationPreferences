@@ -228,7 +228,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     if ([_representationsRootView wantsLayer] && isAnimated)
         [self.window.animator setFrame:newFrame display:YES];
     else
-        [self.window setFrame:newFrame display:YES animate:YES];
+        [self.window setFrame:newFrame display:YES animate:isAnimated];
 }
 
 - (NSString *)titlePlaceholder
