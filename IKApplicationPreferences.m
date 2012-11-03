@@ -120,12 +120,12 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     newRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
     newRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
 
-    if ([_representationsRootView wantsLayer] && isAnimated)
+    if (_representationsRootView.wantsLayer && isAnimated)
     {
         if (self.selectedRepresentation)
-            [[_representationsRootView animator] replaceSubview:self.selectedRepresentation.view with:newRepresentation.view];
+            [_representationsRootView.animator replaceSubview:self.selectedRepresentation.view with:newRepresentation.view];
         else
-            [[_representationsRootView animator] addSubview:newRepresentation.view];
+            [_representationsRootView.animator addSubview:newRepresentation.view];
     }
     else
     {
@@ -338,7 +338,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     };
 
     if (self.usesCoreAnimation)
-        [_representationsRootView setWantsLayer:YES];
+        _representationsRootView.wantsLayer = YES;
 
     if ([_toolbarItemIdentifiers count])
         self.selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];
