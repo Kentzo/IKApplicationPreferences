@@ -9,6 +9,7 @@
 #import "IKApplicationPreferences.h"
 
 
+// Used in IKApplicationPreferencesWindow
 @interface _IKRepresentationRootView : NSView
 @end
 
@@ -30,6 +31,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 {
     NSArray *_toolbarItemIdentifiers;
     NSDictionary *_titleBindingOptions;
+    __block NSView *_shownRepresentationView;
 }
 
 - (instancetype)initWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations usesCoreAnimation:(BOOL)aUsesCoreAnimation
@@ -40,6 +42,8 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     {
         _toolbarItemIdentifiers = [[[self class] visualFormatByExpandingShortcuts:aFormat] componentsSeparatedByString:@","];
         _representations = [aRepresentations copy];
+        _selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];
+        _selectedRepresentation = _representations[_selectedRepresentationIdentifier];
         _usesCoreAnimation = aUsesCoreAnimation;
     }
 
@@ -80,17 +84,15 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 + (instancetype)preferencesWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
 {
-    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_7)
-        return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:NO];
-    else
-        return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:YES];
+    BOOL usesCoreAnimation = floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_7;
+    return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:usesCoreAnimation];
 }
 
 + (NSString *)visualFormatByExpandingShortcuts:(NSString *)aFormatWithShortcuts
 {
     NSMutableString *s = [aFormatWithShortcuts mutableCopy];
-    [s replaceOccurrencesOfString:@" " withString:NSToolbarSpaceItemIdentifier options:0 range:NSMakeRange(0, [s length])];
-    [s replaceOccurrencesOfString:@"-" withString:NSToolbarFlexibleSpaceItemIdentifier options:0 range:NSMakeRange(0, [s length])];
+    [s replaceOccurrencesOfString:@" " withString:NSToolbarSpaceItemIdentifier options:(NSStringCompareOptions)0 range:NSMakeRange(0, [s length])];
+    [s replaceOccurrencesOfString:@"-" withString:NSToolbarFlexibleSpaceItemIdentifier options:(NSStringCompareOptions)0 range:NSMakeRange(0, [s length])];
     return s;
 }
 
@@ -99,7 +101,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     return [self.representations objectForKey:anIdentifier];
 }
 
-- (void)setSelectedRepresentationIdentifier:(NSString *)newIdentifier animated:(BOOL)isAnimated
+- (void)setSelectedRepresentationIdentifier:(NSString *)newIdentifier animated:(BOOL)anIsAnimated
 {
     newIdentifier = [newIdentifier copy];
 
@@ -111,51 +113,93 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     if (!newRepresentation)
         return;
 
-    [NSAnimationContext beginGrouping];
-
     [self willChangeValueForKey:@"selectedRepresentationIdentifier"];
     [self willChangeValueForKey:@"selectedRepresentation"];
-    [self.window unbind:NSTitleBinding];
 
-    newRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
-    newRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
-
-    if (_representationsRootView.wantsLayer && isAnimated)
-    {
-        if (self.selectedRepresentation)
-            [_representationsRootView.animator replaceSubview:self.selectedRepresentation.view with:newRepresentation.view];
-        else
-            [_representationsRootView.animator addSubview:newRepresentation.view];
-    }
-    else
-    {
-        if (self.selectedRepresentation)
-            [_representationsRootView replaceSubview:self.selectedRepresentation.view with:newRepresentation.view];
-        else
-            [_representationsRootView addSubview:newRepresentation.view];
-    }
-
-    _selectedRepresentation = newRepresentation;
-    self.window.toolbar.selectedItemIdentifier = newIdentifier;
     _selectedRepresentationIdentifier = newIdentifier;
-
-    if ([_selectedRepresentation respondsToSelector:@selector(title)])
-        [self.window bind:NSTitleBinding toObject:self withKeyPath:@"selectedRepresentation.title" options:_titleBindingOptions];
+    _selectedRepresentation = newRepresentation;
 
     [self didChangeValueForKey:@"selectedRepresentation"];
     [self didChangeValueForKey:@"selectedRepresentationIdentifier"];
 
-    if (isAnimated && !_representationsRootView.wantsLayer)
-        _representationsRootView.hidden = YES;
+    [self showSelectedRepresentationAnimated:anIsAnimated];
+}
 
-    [self adjustWindowSizeToMatchRepresentationViewSize:_selectedRepresentation.view.frame.size animated:isAnimated];
+- (void)showSelectedRepresentationAnimated:(BOOL)anIsAnimated
+{
+    if (!self.isWindowLoaded)
+        return;
 
-    if (isAnimated && !_representationsRootView.wantsLayer)
-        _representationsRootView.hidden = NO;
+    self.window.toolbar.selectedItemIdentifier = self.selectedRepresentationIdentifier;
+    [self.window unbind:NSTitleBinding];
+    _selectedRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
+    _selectedRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
 
-    [NSAnimationContext endGrouping];
+    void (^animationCompletionHandler)() = ^
+    {
+        if (!_representationsRootView.wantsLayer && [self.selectedRepresentation respondsToSelector:@selector(title)])
+        {
+            [self.window bind:NSTitleBinding toObject:self.selectedRepresentation withKeyPath:@"title" options:_titleBindingOptions];
+            _representationsRootView.hidden = NO;
+        }
 
-    [self.window makeFirstResponder:[newRepresentation.view nextValidKeyView]];
+        [self.window makeFirstResponder:[self.selectedRepresentation.view nextValidKeyView]];
+    };
+
+    if (anIsAnimated)
+    {
+        void (^animationGroup)(NSAnimationContext *aContext) = ^(NSAnimationContext *aContext)
+        {
+            if (_representationsRootView.wantsLayer)
+            {
+                if (_shownRepresentationView.superview == _representationsRootView)
+                    [_representationsRootView.animator replaceSubview:_shownRepresentationView with:self.selectedRepresentation.view];
+                else
+                    [_representationsRootView.animator addSubview:self.selectedRepresentation.view];
+
+                if ([self.selectedRepresentation respondsToSelector:@selector(title)])
+                    [self.window bind:NSTitleBinding toObject:self.selectedRepresentation withKeyPath:@"title" options:_titleBindingOptions];
+            }
+            else
+            {
+                _representationsRootView.hidden = YES;
+
+                if (_shownRepresentationView.superview == _representationsRootView)
+                    [_representationsRootView replaceSubview:_shownRepresentationView with:self.selectedRepresentation.view];
+                else
+                    [_representationsRootView addSubview:self.selectedRepresentation.view];
+            }
+
+            _shownRepresentationView = self.selectedRepresentation.view;
+
+            [self adjustWindowSizeAnimated:YES];
+        };
+
+        if ([[NSAnimationContext class] respondsToSelector:@selector(runAnimationGroup:completionHandler:)])
+            [NSAnimationContext runAnimationGroup:animationGroup completionHandler:animationCompletionHandler];
+        else
+        {
+            [NSAnimationContext beginGrouping];
+
+            animationGroup([NSAnimationContext currentContext]);
+            animationCompletionHandler();
+
+            [NSAnimationContext endGrouping];
+        }
+    }
+    else
+    {
+        if (_shownRepresentationView.superview == _representationsRootView)
+            [_representationsRootView replaceSubview:_shownRepresentationView with:self.selectedRepresentation.view];
+        else
+            [_representationsRootView addSubview:self.selectedRepresentation.view];
+
+        _shownRepresentationView = self.selectedRepresentation.view;
+
+        [self adjustWindowSizeAnimated:NO];
+
+        animationCompletionHandler();
+    }
 }
 
 - (void)showNextRepresentationAnimated:(BOOL)isAnimated
@@ -191,7 +235,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         return;
 
     NSUInteger previousIndex = [_toolbarItemIdentifiers indexOfObjectAtIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, currentIndex)]
-                                                                       options:NSEnumerationConcurrent
+                                                                       options:NSEnumerationConcurrent | NSEnumerationReverse
                                                                    passingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
                                                                        return ![obj isEqual:NSToolbarSpaceItemIdentifier] && ![obj isEqual:NSToolbarFlexibleSpaceItemIdentifier];
                                                                    }];
@@ -229,23 +273,26 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     return newFrame;
 }
 
-- (void)adjustWindowSizeToMatchRepresentationViewSize:(NSSize)newSize animated:(BOOL)isAnimated
+- (void)adjustWindowSizeAnimated:(BOOL)anIsAnimated
 {
-    NSRect newFrame = [self windowFrameForRepresentationViewSize:newSize];
+    if (!self.isWindowLoaded)
+        return;
 
-    if (_representationsRootView.wantsLayer && isAnimated)
+    NSRect newFrame = [self windowFrameForRepresentationViewSize:self.selectedRepresentation.view.frame.size];
+
+    if (_representationsRootView.wantsLayer && anIsAnimated)
         [self.window.animator setFrame:newFrame display:YES];
     else
-        [self.window setFrame:newFrame display:YES animate:isAnimated];
+        [self.window setFrame:newFrame display:YES animate:anIsAnimated];
 }
 
-- (void)adjustWindowAndRepresentationViewSizesToMatchRepresentationViewSize:(NSSize)newSize animated:(BOOL)isAnimated
+- (void)setRepresentationViewSize:(NSSize)newSize animated:(BOOL)anIsAnimated
 {
     NSUInteger currentMask = self.selectedRepresentation.view.autoresizingMask;
     self.selectedRepresentation.view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     NSRect newFrame = [self windowFrameForRepresentationViewSize:newSize];
     // MUST be blocking. Otherwise autoresizing mask will be reset before animation is complete.
-    [self.window setFrame:newFrame display:YES animate:isAnimated];
+    [self.window setFrame:newFrame display:YES animate:anIsAnimated];
     self.selectedRepresentation.view.autoresizingMask = currentMask;
 }
 
@@ -256,7 +303,8 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     return [NSString stringWithFormat:NSLocalizedStringWithDefaultValue(@"%@ Preferences",
                                                                         @"IKApplicationPreferences",
                                                                         [NSBundle bundleForClass:[self class]],
-                                                                        @"%@ Preferences", @"IKApplicationPreferences Default Title Placeholder Format."), bundleName];
+                                                                        @"%@ Preferences", @"IKApplicationPreferences Default Title Placeholder Format."),
+                     appName];
 }
 
 
@@ -337,8 +385,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     if (self.usesCoreAnimation)
         _representationsRootView.wantsLayer = YES;
 
-    if ([_toolbarItemIdentifiers count])
-        self.selectedRepresentationIdentifier = _toolbarItemIdentifiers[0];
+    [self showSelectedRepresentationAnimated:NO];
 }
 
 @end
