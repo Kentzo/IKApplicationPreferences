@@ -251,10 +251,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 - (NSString *)titlePlaceholder
 {
-    NSString *bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
-
-    if (!bundleName)
-        bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+    NSString *appName = [[NSRunningApplication currentApplication] localizedName];
 
     return [NSString stringWithFormat:NSLocalizedStringWithDefaultValue(@"%@ Preferences",
                                                                         @"IKApplicationPreferences",
