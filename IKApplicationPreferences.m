@@ -6,6 +6,11 @@
 //  Copyright (c) 2012 Ilya Kulakov. All rights reserved.
 //
 
+#if !__has_feature(objc_arc)
+    #error IKApplicationPreferences.m MUST be compiled with ARC enabled (-fobjc-arc)
+#endif
+
+
 #import "IKApplicationPreferences.h"
 
 
