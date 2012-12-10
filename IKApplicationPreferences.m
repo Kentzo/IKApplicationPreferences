@@ -391,7 +391,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 #pragma mark NSResponder
 
-- (void)cancelOperation:(id)aSender
+- (void)cancel:(id)aSender
 {
     [self close];
 }
