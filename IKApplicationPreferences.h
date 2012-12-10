@@ -23,7 +23,7 @@
 /*!
     @brief      Determines whether Core Animation is used to show smooth animations.
 
-    @discussion If YES, then root view of wants a layer.
+    @discussion If YES, then root view of the preferences window wants a layer.
  */
 @property (readonly) BOOL usesCoreAnimation;
 
@@ -161,7 +161,7 @@
 
     @discussion It's the best way if you want change frame size of the represention view.
  */
-- (void)setRepresentationViewSize:(NSSize)newSize animated:(BOOL)anIsAnimated;
+- (void)setSelectedRepresentationViewSize:(NSSize)newSize animated:(BOOL)anIsAnimated;
 
 /*!
     @brief      Returns localized placeholder for title if representation's title is not applicable for some reason.

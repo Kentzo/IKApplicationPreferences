@@ -291,7 +291,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         [self.window setFrame:newFrame display:YES animate:anIsAnimated];
 }
 
-- (void)setRepresentationViewSize:(NSSize)newSize animated:(BOOL)anIsAnimated
+- (void)setSelectedRepresentationViewSize:(NSSize)newSize animated:(BOOL)anIsAnimated
 {
     NSUInteger currentMask = self.selectedRepresentation.view.autoresizingMask;
     self.selectedRepresentation.view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
