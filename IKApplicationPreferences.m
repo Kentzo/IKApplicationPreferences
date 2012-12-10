@@ -388,4 +388,12 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     [self showSelectedRepresentationAnimated:NO];
 }
 
+
+#pragma mark NSResponder
+
+- (void)cancelOperation:(id)aSender
+{
+    [self close];
+}
+
 @end
