@@ -393,7 +393,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 - (void)cancel:(id)aSender
 {
-    [self close];
+    [self.window performClose:aSender];
 }
 
 @end
