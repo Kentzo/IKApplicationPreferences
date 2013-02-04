@@ -137,9 +137,10 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
     self.window.toolbar.selectedItemIdentifier = self.selectedRepresentationIdentifier;
     [self.window unbind:NSTitleBinding];
-    _selectedRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
-    _selectedRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
+    self.selectedRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
+    self.selectedRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
 
+    NSView *replacedView = _shownRepresentationView;
     void (^animationCompletionHandler)() = ^
     {
         if (!_representationsRootView.wantsLayer && [self.selectedRepresentation respondsToSelector:@selector(title)])
@@ -147,6 +148,8 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
             [self.window bind:NSTitleBinding toObject:self.selectedRepresentation withKeyPath:@"title" options:_titleBindingOptions];
             _representationsRootView.hidden = NO;
         }
+        else
+            [replacedView removeFromSuperview];
 
         [self.window makeFirstResponder:[self.selectedRepresentation.view nextValidKeyView]];
     };
@@ -155,10 +158,20 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     {
         void (^animationGroup)(NSAnimationContext *aContext) = ^(NSAnimationContext *aContext)
         {
+            aContext.duration = [self.window animationResizeTime:[self windowFrameForRepresentationViewSize:self.selectedRepresentation.view.frame.size]];
             if (_representationsRootView.wantsLayer)
             {
                 if (_shownRepresentationView.superview == _representationsRootView)
-                    [_representationsRootView.animator replaceSubview:_shownRepresentationView with:self.selectedRepresentation.view];
+                {
+                    // We don't use builtin replaceSubview transition, because it looks wrong (up to 10.8.2):
+                    // view that is replaced always bound to the bottom of the window.
+                    self.selectedRepresentation.view.alphaValue = 0.0;
+                    [_representationsRootView addSubview:self.selectedRepresentation.view positioned:NSWindowAbove relativeTo:_shownRepresentationView];
+                    // Ensure that focus ring won't be drawn for replaced view.
+                    [self.window makeFirstResponder:self.selectedRepresentation.view];
+                    [_shownRepresentationView.animator setAlphaValue:0.0];
+                    [self.selectedRepresentation.view.animator setAlphaValue:1.0];
+                }
                 else
                     [_representationsRootView.animator addSubview:self.selectedRepresentation.view];
 
