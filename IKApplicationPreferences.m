@@ -55,17 +55,6 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     return self;
 }
 
-- (instancetype)initWithWindow:(NSWindow *)window
-{
-    self = [super initWithWindow:window];
-
-    if (self)
-    {
-    }
-
-    return self;
-}
-
 
 #pragma mark Properties
 
