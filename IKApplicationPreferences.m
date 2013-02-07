@@ -123,26 +123,33 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
         return;
 
     self.window.toolbar.selectedItemIdentifier = self.selectedRepresentationIdentifier;
-    [self.window unbind:NSTitleBinding];
     self.selectedRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
     self.selectedRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
 
-    NSView *replacedView = _shownRepresentationView;
-    void (^animationCompletionHandler)() = ^
+    void (^finishTransition)() = ^
     {
-        if (!_representationsRootView.wantsLayer && [self.selectedRepresentation respondsToSelector:@selector(title)])
-        {
+        if ([self.selectedRepresentation respondsToSelector:@selector(title)])
             [self.window bind:NSTitleBinding toObject:self.selectedRepresentation withKeyPath:@"title" options:_titleBindingOptions];
-            _representationsRootView.hidden = NO;
-        }
-        else
-            [replacedView removeFromSuperview];
 
         [self.window makeFirstResponder:[self.selectedRepresentation.view nextValidKeyView]];
     };
 
     if (anIsAnimated)
     {
+        NSView *replacedView = _shownRepresentationView;
+        void (^animationCompletionHandler)() = ^
+        {
+            if (!_representationsRootView.wantsLayer)
+                _representationsRootView.hidden = NO;
+            else
+            {
+                [replacedView removeFromSuperview];
+                replacedView.alphaValue = 1.0;
+            }
+
+            finishTransition();
+        };
+
         void (^animationGroup)(NSAnimationContext *aContext) = ^(NSAnimationContext *aContext)
         {
             aContext.duration = [self.window animationResizeTime:[self windowFrameForRepresentationViewSize:self.selectedRepresentation.view.frame.size]];
@@ -154,6 +161,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
                     // view that is replaced always bound to the bottom of the window.
                     self.selectedRepresentation.view.alphaValue = 0.0;
                     [_representationsRootView addSubview:self.selectedRepresentation.view positioned:NSWindowAbove relativeTo:_shownRepresentationView];
+
                     // Ensure that focus ring won't be drawn for replaced view.
                     [self.window makeFirstResponder:self.selectedRepresentation.view];
                     [_shownRepresentationView.animator setAlphaValue:0.0];
@@ -162,6 +170,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
                 else
                     [_representationsRootView.animator addSubview:self.selectedRepresentation.view];
 
+                // Core animation is smooth, so change title immediately.
                 if ([self.selectedRepresentation respondsToSelector:@selector(title)])
                     [self.window bind:NSTitleBinding toObject:self.selectedRepresentation withKeyPath:@"title" options:_titleBindingOptions];
             }
@@ -203,7 +212,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
         [self adjustWindowSizeAnimated:NO];
 
-        animationCompletionHandler();
+        finishTransition();
     }
 }
 
