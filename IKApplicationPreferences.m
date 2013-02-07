@@ -97,8 +97,6 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 - (void)setSelectedRepresentationIdentifier:(NSString *)newIdentifier animated:(BOOL)anIsAnimated
 {
-    newIdentifier = [newIdentifier copy];
-
     if (!newIdentifier || [newIdentifier isEqual:self.selectedRepresentationIdentifier])
         return;
 
@@ -110,7 +108,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     [self willChangeValueForKey:@"selectedRepresentationIdentifier"];
     [self willChangeValueForKey:@"selectedRepresentation"];
 
-    _selectedRepresentationIdentifier = newIdentifier;
+    _selectedRepresentationIdentifier = [newIdentifier copy];
     _selectedRepresentation = newRepresentation;
 
     [self didChangeValueForKey:@"selectedRepresentation"];
