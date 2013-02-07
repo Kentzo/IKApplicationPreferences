@@ -122,6 +122,9 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
     if (!self.isWindowLoaded)
         return;
 
+    if (self.selectedRepresentation.view == _shownRepresentationView)
+        return;
+
     self.window.toolbar.selectedItemIdentifier = self.selectedRepresentationIdentifier;
     self.selectedRepresentation.view.frameOrigin = NSMakePoint(0.0, 0.0);
     self.selectedRepresentation.view.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
