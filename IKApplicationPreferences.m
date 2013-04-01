@@ -156,6 +156,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
             [self adjustWindowSizeAnimated:YES];
             [_shownRepresentationView removeFromSuperview];
+            _shownRepresentationView.alphaValue = 1.0;
         }
         else
         {
