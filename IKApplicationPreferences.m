@@ -78,7 +78,7 @@ static NSString* const IKSelectedRepresentationIdentifierStateKey = @"IKSelected
 
 + (instancetype)preferencesWithWindowNibName:(NSString *)aNibName visualFormat:(NSString *)aFormat representations:(NSDictionary *)aRepresentations
 {
-    BOOL usesCoreAnimation = floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_7;
+    BOOL usesCoreAnimation = floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_7 && floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_8;
     return [[self alloc] initWithWindowNibName:aNibName visualFormat:aFormat representations:aRepresentations usesCoreAnimation:usesCoreAnimation];
 }
 
